@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Explorer 3D</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: white;
+        }
+
+        h1 {
+            margin-top: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #instructions {
+            font-size: 18px;
+            margin: 10px auto;
+            max-width: 600px;
+            line-height: 1.5;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            display: none; /* Initially hidden */
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            grid-gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+            perspective: 1000px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .cell {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #ffffff, #e0e0e0);
+            border: 2px solid #ccc;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.5s, background-color 0.3s, box-shadow 0.3s;
+            transform-style: preserve-3d;
+        }
+
+        .cell:hover {
+            transform: rotateY(180deg) scale(1.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell.selected {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            border-color: #2e7d32;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: rotateX(360deg);
+        }
+
+        .cell.highlighted {
+            background: linear-gradient(135deg, #ffeb3b, #ffc107);
+            border-color: #ffa000;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background-color: #e64a19;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <h1>Pattern Explorer 3D</h1>
+    <button onclick="toggleInstructions()">Show Instructions</button>
+    <div id="instructions">
+        <p>Welcome to Pattern Explorer 3D! Here’s how to play:</p>
+        <ul>
+            <li>At the start of the game, a pattern of highlighted cells will briefly appear.</li>
+            <li>Your goal is to click on the cells in the same sequence as shown in the pattern.</li>
+            <li>Each level increases the number of cells in the pattern.</li>
+            <li>If you match the pattern correctly, you advance to the next level!</li>
+            <li>If you make a mistake, try again by clicking "Restart Game."</li>
+        </ul>
+        <p>Good luck!</p>
+    </div>
+    <div id="grid"></div>
+    <p id="message"></p>
+    <p id="level">Level: 1</p>
+    <button onclick="startGame()">Restart Game</button>
+
+    <script>
+        const gridSize = 5;
+        const grid = document.getElementById('grid');
+        const message = document.getElementById('message');
+        const instructions = document.getElementById('instructions');
+        const levelDisplay = document.getElementById('level');
+        let pattern = [];
+        let selectedCells = [];
+        let currentStep = 0;
+        let currentLevel = 1;
+
+        // Initialize the grid
+        function createGrid() {
+            grid.innerHTML = '';
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => selectCell(cell));
+                grid.appendChild(cell);
+            }
+        }
+
+        // Generate a random pattern based on the current level
+        function generatePattern() {
+            pattern = [];
+            const numberOfCells = currentLevel + 1; // Start with 2 cells at level 1, up to 9 cells at level 8
+            while (pattern.length < numberOfCells) {
+                const randomIndex = Math.floor(Math.random() * (gridSize * gridSize));
+                if (!pattern.includes(randomIndex)) {
+                    pattern.push(randomIndex);
+                }
+            }
+            console.log('Pattern:', pattern); // For debugging purposes
+            highlightPattern();
+        }
+
+        // Highlight the pattern briefly
+        function highlightPattern() {
+            pattern.forEach((index, i) => {
+                setTimeout(() => {
+                    const cell = grid.children[index];
+                    cell.classList.add('highlighted');
+                    setTimeout(() => cell.classList.remove('highlighted'), 500);
+                }, i * 600); // Highlight each cell sequentially
+            });
+        }
+
+        // Highlight selected cells
+        function selectCell(cell) {
+            const index = parseInt(cell.dataset.index);
+            if (index === pattern[currentStep]) {
+                cell.classList.add('selected');
+                currentStep++;
+
+                if (currentStep === pattern.length) {
+                    if (currentLevel < 8) {
+                        currentLevel++;
+                        levelDisplay.textContent = `Level: ${currentLevel}`;
+                        message.textContent = 'Good job! Advancing to the next level...';
+                        setTimeout(startGame, 1000);
+                    } else {
+                        message.textContent = 'Congratulations! You completed all levels!';
+                    }
+                }
+            } else {
+                message.textContent = 'Incorrect! Try again.';
+                resetSelections();
+            }
+        }
+
+        // Reset selections on incorrect guess
+        function resetSelections() {
+            selectedCells = [];
+            currentStep = 0;
+            Array.from(grid.children).forEach(cell => cell.classList.remove('selected'));
+        }
+
+        // Start a new game
+        function startGame() {
+            selectedCells = [];
+            currentStep = 0;
+            message.textContent = '';
+            createGrid();
+            generatePattern();
+        }
+
+        // Toggle instructions visibility
+        function toggleInstructions() {
+            if (instructions.style.display === 'none') {
+                instructions.style.display = 'block';
+            } else {
+                instructions.style.display = 'none';
+            }
+        }
+
+        // Initialize the game on page load
+        startGame();
+    </script>
+</body>
+</html>
